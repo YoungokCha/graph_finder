@@ -11,8 +11,9 @@ Graph-FINDER is a multimodal AI framework links literature mining with machine l
 
 1. Isolating curves from published figures, including region detection, axis localization, and text annotation (crop_roi_from_graph.py)
 <p align="center">
- <img width="800" height="400" alt="image" src="https://github.com/user-attachments/assets/5595a498-b22b-400e-b244-8626cb03d359" />
+ <img width="800" height="400" alt="image" src="https://github.com/user-attachments/assets/12572a36-00fa-498d-b897-9a9a3ad85e45" />
 </p>
+
 
 The process begins with acquiring original images from literature sources (a). Visual feature detection is then used to identify regions likely containing closed rectangles (b). The main plotting areas, typically defined by rectangular regions exceeding a specific area threshold and including the primary axes, are localized and extracted to focus on the core measurement content (c). Subplots and auxiliary axes are removed to reduce visual clutter, ensuring only the relevant data region is retained (d). Finally, textual elements such as legends, labels, and annotations are detected to preserve essential contextual information needed for accurate interpretation of the extracted data (e).
 
@@ -27,7 +28,7 @@ The process begins with acquiring original images from literature sources (a). V
  The process begins with a sample graph, where individual curves are separated through binary color masking. A virtual grid is then overlaid to detect and isolate data points corresponding to each curve. The extracted values are digitized into structured numerical tables, which are subsequently plotted to verify accuracy. Finally, the reconstructed plots are combined to reproduce the original figure with high precision.
 
 
-3. Dopant–Property Prediction
+3. Dopant–Property Prediction (new_dopants_generation.py)
 <p align="center">
  <img width="800" height="400" alt="fig_method_prediction" src="https://github.com/user-attachments/assets/7eefa6ff-4e2b-48b6-9012-ccd74444c40b" />
 </p>
