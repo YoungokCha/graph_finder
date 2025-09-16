@@ -28,7 +28,7 @@ def download_image(image_url, image_file, caption_data, doi):
             ocr_result = pytesseract.image_to_data(image, output_type=pytesseract.Output.DICT)
             ocr_text_list = ocr_result['text']  
             search_terms = [SEARCH_TERM_LIST]
-            if (any(term.lower() in (text.lower() for text in ocr_text_list) for term in search_terms) or  any(term in              caption_data.lower() for term in search_terms)):
+            if (any(term.lower() in (text.lower() for text in ocr_text_list) for term in search_terms) or  any(term in caption_data.lower() for term in search_terms)):
                 counter=image_file.split('-')[-1].split('_')[0]
                 with open(output_folder+'/'+doi+'_'+ counter+'.jpg', 'wb') as file:
                     file.write(response.content)
