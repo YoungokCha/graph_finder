@@ -8,7 +8,6 @@
 Graph-FINDER is a multimodal AI framework links literature mining with machine learning–based prediction to establish a scalable foundation for identifying optimal material candidates. In the database creation stage (blue), Graph-FINDER employs natural language processing, computer vision, and large language models to extract textual and graphical information from publications, converting fragmented literature into curated, machine-actionable datasets. These datasets enable application-aware prediction (orange), where models estimate candidate properties, benchmark them against device requirements, and uncover interpretable structure–property relationships. The synthesis and validation stage (green) is included as a prospective extension rather than a contribution of this work, representing future experimental realization and measurement of top-ranked candidates to refine the database. This envisioned feedback loop highlights the broader potential of Graph-FINDER for accelerating functional materials discovery.
 
 
-
 1. Isolating curves from published figures, including region detection, axis localization, and text annotation (crop_roi_from_graph.py)
 <p align="center">
  <img width="800" height="400" alt="image" src="https://github.com/user-attachments/assets/12572a36-00fa-498d-b897-9a9a3ad85e45" />
