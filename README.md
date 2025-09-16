@@ -18,6 +18,6 @@ The process begins with acquiring original images from literature sources (a). V
 
 
 # 3. Evaluation of prompting and fine-tuning strategies for automated extraction of axes metadata from graph images (save_data_point_into_file.py)
-<img width="600" height="600" alt="figure4_new" src="https://github.com/user-attachments/assets/89329722-2143-4fbd-b132-1d30dce1da3f" />
+<img width="700" height="700" alt="figure4_new" src="https://github.com/user-attachments/assets/89329722-2143-4fbd-b132-1d30dce1da3f" />
 
 (a) Baseline Prompt: The original instruction is supplied to the out-of-the-box GPT-4 Vision Preview model, yielding separate axis labels with only their minimum and maximum values. (b) Revised Prompt: An enhanced prompt emphasising full coverage of the $y$-axis range (from graph box bottom to top) is applied to the same GPT-4 model, resulting in improved identification of axes ranges and legend colours with estimated bounds. (c) Fine-Tuned GPT-4: A GPT-4 model is fine-tuned on a bespoke training set of 50 graph images (10 epochs, batch size 1 and training loss 0.0072) to directly output the axes labels, their exact min/max values, and legend information in a single specified format. Output examples for each method are shown at the bottom, illustrating progressive gains in completeness and precision of metadata extraction.
