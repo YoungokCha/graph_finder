@@ -8,7 +8,7 @@
 Graph-FINDER is a multimodal AI framework links literature mining with machine learning–based prediction to establish a scalable foundation for identifying optimal material candidates. In the database creation stage (blue), Graph-FINDER employs natural language processing, computer vision, and large language models to extract textual and graphical information from publications, converting fragmented literature into curated, machine-actionable datasets. These datasets enable application-aware prediction (orange), where models estimate candidate properties, benchmark them against device requirements, and uncover interpretable structure–property relationships. The synthesis and validation stage (green) is included as a prospective extension rather than a contribution of this work, representing future experimental realization and measurement of top-ranked candidates to refine the database. This envisioned feedback loop highlights the broader potential of Graph-FINDER for accelerating functional materials discovery.
 
 
-1. Isolating curves from published figures, including region detection, axis localization, and text annotation (crop_roi_from_graph.py)
+1. crop_roi_from_graph.py: Isolating curves from published figures, including region detection, axis localization, and text annotation
 <p align="center">
  <img width="800" height="400" alt="image" src="https://github.com/user-attachments/assets/12572a36-00fa-498d-b897-9a9a3ad85e45" />
 </p>
@@ -18,7 +18,7 @@ The process begins with acquiring original images from literature sources (a). V
 
 
 
-2. Reconstruction of numerical data from the graphs (save_data_point_into_file.py)
+2. save_data_point_into_file.py: Reconstruction of numerical data from the graphs
 <p align="center">
  <img width="600" height="800" alt="figure5_new" src="https://github.com/user-attachments/assets/003b7399-4aea-4e47-b8c6-48c8490a3c2e" />
 </p>
@@ -27,7 +27,7 @@ The process begins with acquiring original images from literature sources (a). V
  The process begins with a sample graph, where individual curves are separated through binary color masking. A virtual grid is then overlaid to detect and isolate data points corresponding to each curve. The extracted values are digitized into structured numerical tables, which are subsequently plotted to verify accuracy. Finally, the reconstructed plots are combined to reproduce the original figure with high precision.
 
 
-3. Dopant–Property Prediction (new_dopants_generation.py)
+3. new_dopants_generation.py: Dopant–Property Prediction
 <p align="center">
  <img width="800" height="400" alt="fig_method_prediction" src="https://github.com/user-attachments/assets/7eefa6ff-4e2b-48b6-9012-ccd74444c40b" />
 </p>
