@@ -1,64 +1,29 @@
-"""
-@author: chay
-"""
-import os
-import re
-import csv
-import base64
 import cv2
 import numpy as np
-import requests
 import matplotlib.pyplot as plt
+import csv
+import base64
+import requests
+from sklearn.cluster import DBSCAN
+import re
+import os
 from scipy.stats import zscore
+from scipy.spatial.distance import pdist
+from scipy.interpolate import make_interp_spline
 
-directory = DIRECTORY
+directory = #folder_path
 
 def sanitize_label(label):
-    return label.strip("'").strip('"')
-
-def is_number(s):
-    try:
-        float(s)
-        return True
-    except ValueError:
-        return False
-
-def convert_to_float(s):
-    s = s.strip()
-    if "*10^" in s or "×10^" in s:
-        s_mod = s.replace("*10^", "e").replace("×10^", "e")
-        try:
-            return float(s_mod)
-        except ValueError:
-            print(f"DEBUG: Could not convert '{s}' (modified: '{s_mod}')")
-            return None
-    elif "^" in s:
-        match = re.fullmatch(r"([-+]?\d*\.?\d+)\^([-+]?\d+)", s)
-        if match:
-            base_str, exp_str = match.groups()
-            try:
-                return float(base_str) ** float(exp_str)
-            except ValueError:
-                print(f"DEBUG: Could not convert base/exponent in '{s}'")
-                return None
-        else:
-            try:
-                return float(s)
-            except ValueError:
-                print(f"DEBUG: Could not convert '{s}'")
-                return None
-    else:
-        try:
-            return float(s)
-        except ValueError:
-            print(f"DEBUG: Could not convert '{s}'")
-            return None
+    label = label.strip("'").strip('"')
+    #return re.sub(r'[^a-zA-Z0-9\s]', '_', label)
+    return label
 
 def create_mask(hsv_image, lower_bound, upper_bound):
-    return cv2.inRange(hsv_image, lower_bound, upper_bound)
+    mask = cv2.inRange(hsv_image, lower_bound, upper_bound)
+    return mask
 
 def define_color_ranges():
-    return {
+    color_ranges = {
         "red1": (np.array([0, 50, 50]), np.array([10, 255, 255])),
         "red2": (np.array([170, 50, 50]), np.array([180, 255, 255])),
         "blue": (np.array([100, 120, 50]), np.array([140, 255, 255])),
@@ -72,93 +37,46 @@ def define_color_ranges():
         "pink": (np.array([160, 50, 50]), np.array([170, 255, 255])),
         "light_blue": (np.array([85, 50, 70]), np.array([105, 255, 255])),
     }
+    return color_ranges
+
 
 def detect_and_create_masks(hsv_image, color_name):
     color_ranges = define_color_ranges()
     masks = {}
+        
     if color_name in color_ranges:
-        lower, upper = color_ranges[color_name]
-        masks[color_name] = create_mask(hsv_image, lower, upper)
+        lower_bound, upper_bound = color_ranges[color_name]
+        mask = create_mask(hsv_image, lower_bound, upper_bound)
+        masks[color_name] = mask
+        
     elif color_name == "red":
-        lower1, upper1 = color_ranges["red1"]
-        lower2, upper2 = color_ranges["red2"]
-        mask1 = create_mask(hsv_image, lower1, upper1)
-        mask2 = create_mask(hsv_image, lower2, upper2)
+        lower_bound1, upper_bound1 = color_ranges["red1"]
+        lower_bound2, upper_bound2 = color_ranges["red2"]
+        mask1 = create_mask(hsv_image, lower_bound1, upper_bound1)
+        mask2 = create_mask(hsv_image, lower_bound2, upper_bound2)
         masks[color_name] = cv2.bitwise_or(mask1, mask2)
+
     return masks
 
-def parse_legend(line):
-    try:
-        _, content = line.split(":", 1)
-    except ValueError:
-        return None
-    content = content.strip().strip("[]")
-    pairs = re.findall(r"\(\s*([^,]+?)\s*,\s*([^)]+?)\s*\)", content)
-    return pairs
 
-def parse_axes(line):
-    try:
-        _, content = line.split(":", 1)
-    except ValueError:
-        return None
-    content = content.strip().strip("[]")
-    parts = [p.strip() for p in content.split(",")]
-    return parts if len(parts) == 2 else None
 
-def encode_image(image_path):
-    with open(image_path, "rb") as img_file:
-        return base64.b64encode(img_file.read()).decode('utf-8')
-
-def extract_axes_legend_info_using_gpt4o(image_path, api_key):
-    base64_image = encode_image(image_path)
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {api_key}"
-    }
-    prompt_text = PROMPT_TEXT
-    payload = {
-        "model": GPT_MODEL,
-        "messages": [
-            { "role": "system", "content": "You are an assistant that extracts the precise graph legend axes data" },
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": prompt_text},
-                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}", "detail": "high"}}
-                ]
-            }
-        ],
-    }
-    try:
-        response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
-        response.raise_for_status()
-        result = response.json()
-        return result['choices'][0]['message']['content']
-    except (requests.exceptions.RequestException, KeyError) as e:
-        print(f"Request failed or unexpected response: {e}")
-        return ""
+def process_mask(mask, color_name, rows, cols, num_rows, num_cols, image_path, legend, axes_data):
+    img = np.zeros_like(mask)
     
-def process_mask(mask, color_name, rows, cols, num_rows, num_cols, image_path, legend, axes_data,caption_text):
-    img = np.zeros_like(mask).
-    x_axis_label, x_min, x_max = axes_data[0]
-    y_axis_label, y_min, y_max = axes_data[1]
-    x_scale = (x_max - x_min) / cols
-    if y_min == 0:
-        is_log_scale = False
-    else:
-        is_log_scale = (y_max / y_min) > 1000 
-    if is_log_scale:
-        log_y_max = np.log10(y_max)
-        log_y_min = np.log10(y_min)
-        y_scale_log = (log_y_max - log_y_min) / rows
-    else:
-        y_scale = (y_max - y_min) / rows
-    cell_locations = [["Legend", x_axis_label, y_axis_label]]
-    cell_locations_file = [["Legend", x_axis_label, y_axis_label]]
-    x_bins = np.linspace(x_min, x_max, 100)
-    detected_points = {bin_val: [] for bin_val in x_bins}
     cell_width = cols // num_cols
     cell_height = rows // num_rows
+    
+    x_axis_label, x_min, x_max = axes_data[0]
+    y_axis_label, y_min, y_max = axes_data[1]
+    
+    x_scale = (x_max - x_min) / cols
+    y_scale = (y_max - y_min) / rows
+
+    cell_locations = [["Legend", x_axis_label, y_axis_label]]
+    cell_locations_file = [["Legend", x_axis_label, y_axis_label]]
+    
+    x_bins = np.linspace(x_min, x_max, 100)
+    detected_points = {x: [] for x in x_bins}
 
     for i in range(num_rows):
         for j in range(num_cols):
@@ -166,181 +84,243 @@ def process_mask(mask, color_name, rows, cols, num_rows, num_cols, image_path, l
             bottom = (i + 1) * cell_height
             left = j * cell_width
             right = (j + 1) * cell_width
+            
             cell = mask[top:bottom, left:right]
-            indices = np.argwhere(cell > 0)
-            if indices.size > 0:
-                k, l = indices[0]
-                x_value = x_min + (left + l) * x_scale
-                pixel_row = top + k
-                if is_log_scale:
-                    log_y_value = np.log10(y_max) - (pixel_row/rows) * (np.log10(y_max) - np.log10(y_min))
-                    y_value = 10 ** log_y_value
-                else:
-                    y_value = y_max - (pixel_row / rows) * (y_max - y_min)
-                x_bin = min(x_bins, key=lambda b: abs(b - x_value))
-                detected_points[x_bin].append(y_value)
+            non_black = np.any(cell > 0)
+            
+            if non_black:
+                for k in range(cell.shape[0]):
+                    for l in range(cell.shape[1]):
+                        if cell[k, l] > 0:
+                            x_value = x_min + (left + l) * x_scale
+                            y_value = y_max - (top + k) * y_scale
+                            x_bin = min(x_bins, key=lambda b: abs(b - x_value))
+                            detected_points[x_bin].append(y_value)
+                            break
+                    if non_black:
+                        break
+
+    
+    # Apply outlier filtering for each x_bin with detected points
     filtered_points = []
     for x_bin, y_values in detected_points.items():
         if y_values:
-            y_arr = np.array(y_values)
-            if len(y_arr) > 2:
-                median = np.median(y_arr)
-                mad = np.median(np.abs(y_arr - median))
-                if mad < 1e-6:
-                    y_filtered = y_arr
-                else:
-                    y_filtered = y_arr[np.abs(y_arr - median) / mad < 0.2]
+            y_values = np.array(y_values)
+            
+            if len(y_values) > 2:
+                y_z_scores = zscore(y_values)
+                y_values_filtered = y_values[np.abs(y_z_scores) < 1.2]  # Filter out points with z-score > 1.5
             else:
-                y_filtered = y_arr
-            if len(y_filtered) > 0:
-                median_y = np.median(np.sort(y_filtered))
-                filtered_points.append((x_bin, median_y))
+                y_values_filtered = y_values  # Skip filtering if insufficient points
+            
+            if len(y_values_filtered) > 0:
+                y_values_filtered.sort()
+                middle_y = y_values_filtered[len(y_values_filtered) // 2]
+                filtered_points.append((x_bin, middle_y))        ##middle point
+            
+    # Convert filtered points to arrays
     filtered_points = np.array(filtered_points)
+  
+    for x_value, y_value in filtered_points:
+        cell_locations.append([legend, x_value, y_value])
+        col = int((x_value - x_min) / x_scale)
+        row = int((y_max - y_value) / y_scale)
+        img[row - 2:row + 2, col - 2:col + 2] = 200
+        
+        if y_max < 10:
+            x_value_file = x_value
+            y_value_file = 10**(y_value)
+        else:    
+            x_value_file = x_value 
+            y_value_file = y_value
+
+        cell_locations_file.append([legend, x_value_file, y_value_file])
     
-    for x_val, y_val in filtered_points:
-        cell_locations.append([legend, x_val, y_val])
-        col = int((x_val - x_min) / x_scale)
-        if is_log_scale:
-            row = int((log_y_max - np.log10(y_val)) / (log_y_max - log_y_min) * rows)
-        else:
-            row = int((y_max - y_val) / (y_max - y_min) * rows)
-        img[max(0, row-2):min(rows, row+2), max(0, col-2):min(cols, col+2)] = 200
-        cell_locations_file.append([legend, x_val, y_val])
-    plt.figure()
     plt.imshow(img, cmap='gist_ncar')
-
-    x_grid_data = np.linspace(x_min, x_max, num_cols + 1)
-    x_grid_pixels = (x_grid_data - x_min) / (x_max - x_min) * cols
-    for x_pix in x_grid_pixels:
-        plt.axvline(x_pix, color='g', linestyle='--', linewidth=0.5)
-
-    if is_log_scale:
-        y_grid_data = np.logspace(np.log10(y_min), np.log10(y_max), num_rows + 1)
-        y_grid_pixels = (log_y_max - np.log10(y_grid_data)) / (log_y_max - log_y_min) * rows
-    else:
-        y_grid_data = np.linspace(y_min, y_max, num_rows + 1)
-        y_grid_pixels = (y_max - y_grid_data) / (y_max - y_min) * rows
-    for y_pix in y_grid_pixels:
-        plt.axhline(y_pix, color='g', linestyle='--', linewidth=0.5)
+    for i in range(1, num_cols):
+        plt.axvline(cols // num_cols * i, color='g', linestyle='--', linewidth=0.5)
+    for i in range(1, num_rows):
+        plt.axhline(rows // num_rows * i, color='g', linestyle='--', linewidth=0.5)
     plt.axis('off')
-    plt.title(f'{color_name.capitalize()} Mask with Data Grid')
+    plt.title(f'{color_name.capitalize()} Mask with Grid')
     plt.show()
     
-    save_name = os.path.basename(image_path).replace('.png', f'_{color_name}')
+    save_name = image_path.split('/')[-1].replace('.png', '_') + color_name
     invalid_chars = r'[<>:"/\\|?*\x00-\x1F]'
     legend_sanitized = re.sub(invalid_chars, '_', legend)
     x_axis_label_sanitized = re.sub(invalid_chars, '_', x_axis_label)
     y_axis_label_sanitized = re.sub(invalid_chars, '_', y_axis_label)
-    caption_text_sanitized = re.sub(invalid_chars, '_', caption_text)
+    file_path = f'{save_name}_{legend_sanitized}_{x_axis_label_sanitized}_{y_axis_label_sanitized}.csv'
 
-    file_name = f'{legend_sanitized}_{x_axis_label_sanitized}_{y_axis_label_sanitized}_{caption_text_sanitized}.csv'
-    file_path = os.path.join(directory, file_name)
-    
-    with open(file_path, 'w', newline='', encoding='utf-8') as f:
-        csv.writer(f).writerows(cell_locations_file)
+    with open(file_path, 'w', newline='', encoding='utf-8') as file:
+        writer = csv.writer(file)
+        writer.writerows(cell_locations_file)
     print(f"Data has been written to {file_path}")
-
-    plt.figure()
-    x_points = [pt[1] for pt in cell_locations[1:]]
-    y_points = [pt[2] for pt in cell_locations[1:]]
-    plt.scatter(x_points, y_points, color=color_name, s=3)
-   
+    
+    x_points = [point[1] for point in cell_locations[1:]]
+    y_points = [point[2] for point in cell_locations[1:]]
+    plt.scatter(x_points, y_points, color=f'{color_name}', s=3)
     plt.xlabel(x_axis_label)
     plt.ylabel(y_axis_label)
-    if is_log_scale:
-        plt.yscale('log')
     plt.title(f'Detected Points for {legend}')
     plt.xlim(x_min, x_max)
     plt.ylim(y_min, y_max)
     plt.show()
 
-def main(image_path, legends, axes_data, caption_text):
-    image_origin = cv2.imread(image_path)
-    image_rgb = cv2.cvtColor(image_origin, cv2.COLOR_BGR2RGB)
-    plt.imshow(image_rgb)
-    plt.axis('off')
-    plt.title('RGB Image')
-    plt.show()
+    
+    
+def encode_image(image_path):
+    with open(image_path, "rb") as img_file:
+        return base64.b64encode(img_file.read()).decode('utf-8')
+    
 
+def extract_axes_legend_info_using_gpt4o(image_path, api_key):
+
+    base64_image = encode_image(image_path)
+    
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {api_key}"
+    }
+
+    
+    prompt_text = ("Provide the legend colors and names, as well as the axis names and their precise minimum and maximum values from the attached image. If legend is absent, use [(black, *)]. If axis min, max values are in scientific notation (e.g, 10^3), return only the exponent (e.g.,3). Format the output as: Legend: [(color, legend label), (color, legend label), ...] '\n'Axes: [(x-axis_name, x_min, x_max), (y-axis_name, y_min, y_max)]. Provide output strictly in the specified format.")
+
+    payload = {
+       "model" : #fine-tuned model
+       "messages": [
+           { "role": "system", "content": "You are an assistant that extracts the precise graph legend axes data" },           
+           {
+               "role": "user",
+               "content": [
+                   {"type" : "text",
+                    "text" : prompt_text },
+                   {"type": "image_url",
+                    "image_url":{ "url": f"data:image/jpeg;base64,{base64_image}",
+                                 "detail": "high" }
+                    }
+                   ]
+           }
+       ],
+   }
+
+    try:
+       response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
+       response.raise_for_status()
+       result = response.json()
+       
+       # Extracting content from the response
+       response_content = result['choices'][0]['message']['content']
+       
+       return response_content
+
+    except requests.exceptions.RequestException as e:
+       print(f"Request failed: {e}")
+       return ""
+    except KeyError:
+       print("Unexpected response structure.")
+       return ""
+
+
+def main(image_path, legends, axes_data):
+    image_origin = cv2.imread(image_path)
+    image = cv2.cvtColor(image_origin, cv2.COLOR_BGR2RGB)
+    plt.imshow(image)
+    plt.axis('off')
+    plt.title('BGR image')
+    plt.show() 
+    
     hsv_image = cv2.cvtColor(image_origin, cv2.COLOR_BGR2HSV)
     plt.imshow(hsv_image)
     plt.axis('off')
-    plt.title('HSV Image')
-    plt.show()
-
-    rows, cols = image_origin.shape[:2]
-    num_rows, num_cols = rows // 2, cols // 2
-
+    plt.title('HSV image')
+    plt.show() 
+    
+    rows, cols = image.shape[0], image.shape[1]
+    print(rows, cols)
+    num_rows, num_cols = int(rows/2), int(cols/2)
+    
     for color_name, legend in legends:
         masks = detect_and_create_masks(hsv_image, color_name)
-        for mask in masks.values():
-            process_mask(mask, color_name, rows, cols, num_rows, num_cols, image_path, legend, axes_data, caption_text)
+        for mask_color_name, mask in masks.items():
+            process_mask(mask, mask_color_name, rows, cols, num_rows, num_cols, image_path, legend, axes_data)
+          
+def parse_color_label_pairs(s):
+    print(s)
+    #return re.findall(r"\(\s*(['\"]?[^,'\"]+['\"]?)\s*,\s*([^,]+)\s*,\s*([^)]+)\s*\)", s)
+    return re.findall(r'\((\w+),\s*([^)]+)\)', s)
+
+def parse_label_min_max(s):
+    print(s)
+    matches = re.findall(r"\(\s*(['\"]?[^,'\"]+['\"]?)\s*,\s*([^,]+)\s*,\s*([^)]+)\s*\)", s)
+    
+    def extract_exponent(value):
+        match = re.match(r"10[⁰¹²³⁴⁵⁶⁷⁸⁹]+", value)
+        if match:
+            exponent_str = value[2:]
+            exponent = ''.join(str("⁰¹²³⁴⁵⁶⁷⁸⁹".index(c)) for c in exponent_str if c in "⁰¹²³⁴⁵⁶⁷⁸⁹")
+            return int(exponent)
+        try:
+            return eval(value)
+        except (SyntaxError, NameError):
+            return value  # Return as string if evaluation fails
+    
+    results = [[m[0], extract_exponent(m[1]), extract_exponent(m[2])] for m in matches]
+    
+    return results
+
 
 if __name__ == "__main__":
+    api_key = #API KEY 
+    
+    roi_files = {}
+    regular_files = {}
 
-    api_key = API_KEY
-
-    roi_files, regular_files, text_files = {}, {}, {}
     for filename in os.listdir(directory):
-        filepath = os.path.join(directory, filename)
         if filename.endswith('_roi.png'):
             base_name = filename[:-8]
-            roi_files[base_name] = filepath
+            roi_files[base_name] = os.path.join(directory, filename)
         elif filename.endswith('.png'):
             base_name = filename[:-4]
-            regular_files[base_name] = filepath
-        elif filename.endswith('_sum.txt'):
-            base_name = filename[:-8]
-            text_files[base_name] = filepath
+            regular_files[base_name] = os.path.join(directory, filename)
 
     for base_name in roi_files:
         if base_name in regular_files:
             image_path_roi = roi_files[base_name]
             image_path = regular_files[base_name]
+            
             results = extract_axes_legend_info_using_gpt4o(image_path_roi, api_key)
             parts = results.split('\n')
+            
             if len(parts) < 2:
                 print(f"Error: The results for {image_path_roi} are not in the expected format.")
                 continue
+            
+            # Parse legend color-label pairs and axis data with min/max values
+            color_label_pairs = parse_color_label_pairs(parts[0])
+            label_min_max_pairs = parse_label_min_max(parts[1])
+      
+            if color_label_pairs and label_min_max_pairs:  
+                colors = [pair[0] for pair in color_label_pairs]
+                labels_from_colors = [sanitize_label(pair[1]) for pair in color_label_pairs]
+                labels_from_values = [sanitize_label(pair[0]) for pair in label_min_max_pairs]
+               
+                #print(labels_from_values)
+                min_numbers = [pair[1] for pair in label_min_max_pairs]                
+                max_numbers = [pair[2] for pair in label_min_max_pairs]
 
-            legend_line, axes_line = parts[0], parts[1]
-            legend_pairs = parse_legend(legend_line)
-            if not legend_pairs:
-                print("Error: Could not parse the legend line.")
-                continue
+                if all(is_number(min_val) for min_val in min_numbers) and all(is_number(max_val) for max_val in max_numbers):
+                    min_numbers = [float(min_val) for min_val in min_numbers]
+                    max_numbers = [float(max_val) for max_val in max_numbers]
 
-            colors = [pair[0].strip() for pair in legend_pairs]
-            labels_from_colors = [sanitize_label(pair[1]) for pair in legend_pairs]
-            axes_labels = parse_axes(axes_line)
-            if not axes_labels or len(axes_labels) != 2:
-                print(f"Error: Could not parse the axes line for {image_path_roi}.")
-                continue
-
-            if base_name in text_files:
-                text_file_path = text_files[base_name]
-                with open(text_file_path, 'r') as f:
-                    lines = [line.strip() for line in f if line.strip()]
-                if len(lines) < 4:
-                    print(f"Error: The text file {text_file_path} does not contain enough data.")
-                    continue
-
-                min_y = convert_to_float(lines[0])
-                max_y = convert_to_float(lines[1])
-                min_x = convert_to_float(lines[2])
-                max_x = convert_to_float(lines[3])
-                caption_text = lines[4]
-                if None in (min_x, max_x, min_y, max_y):
-                    print(f"Error: Could not convert one or more min/max values in {text_file_path}")
-                    continue
-
-                min_numbers = [min_x, min_y]
-                max_numbers = [max_x, max_y]
+                    legends = list(zip(colors, labels_from_colors))
+                    axes_data = list(zip(labels_from_values, min_numbers, max_numbers))
+                
+                    print("Legends:", legends)
+                    print("Axes Data:", axes_data)
+                
+                    main(image_path, legends, axes_data)
+                else:
+                    print(f"Error: Non-numeric min/max values found in {image_path_roi}, skipping this file.")
             else:
-                print(f"Warning: No corresponding text file found for {base_name}. Skipping.")
-                continue
-
-            legends = list(zip(colors, labels_from_colors))
-            axes_data = list(zip(axes_labels, min_numbers, max_numbers))
-            print("Legends:", legends)
-            print("Axes Data:", axes_data)
-            main(image_path, legends, axes_data, caption_text)
+                print(f"Error: Color label pairs or label min-max pairs are empty for {image_path_roi}.")
