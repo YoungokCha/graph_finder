@@ -1,0 +1,35 @@
+# ----- GEOM RELAX (PBE+U) -----
+SYSTEM   = VO2:Mo (V126 Mo2 O256)  x(Mo)=1.56%
+ISTART   = 0
+ICHARG   = 2
+ISPIN    = 2
+MAGMOM   = 126*1.0  2*1.0  256*0.0    # order: V, Mo, O
+
+ENCUT    = 520
+PREC     = Accurate
+LASPH    = .TRUE.
+LREAL    = Auto
+ADDGRID  = .TRUE.
+ISYM     = 0
+LMAXMIX  = 4
+
+ALGO     = Fast
+EDIFF    = 1E-5
+EDIFFG   = -0.02
+NSW      = 120
+IBRION   = 2
+ISIF     = 3
+
+# Smearing for relaxation
+ISMEAR   = 0
+SIGMA    = 0.05
+
+# +U only on V-3d (order must match POTCAR: V, Mo, O)
+LDAU     = .TRUE.
+LDAUTYPE = 2
+LDAUL    = 2   -1  -1
+LDAUU    = 3.5  0   0      # try 3.0–4.0 eV for VO2; keep Mo, O at 0
+LDAUJ    = 0    0   0
+
+LWAVE    = .FALSE.
+LCHARG   = .FALSE.
