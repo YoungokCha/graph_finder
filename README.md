@@ -1,6 +1,8 @@
 ## Graph-FINDER: Enabling Data-Driven Dopant Discovery in Phase Change Materials via Automated Text and Figure Extraction
 
-### The extracted data is available through an interactive web interface **VO2 dopant database** ➜ [https://github.com/<owner>/VO2-dopant-database](https://wm355.github.io/GraphFinderDatabase/)
+### Explore the data extracted by Graph-FINDER via the VO₂ dopant database interactive web interface. ➜ [https://github.com/<owner>/VO2-dopant-database](https://wm355.github.io/GraphFinderDatabase/)
+
+
 
 <p align="center">
  <img width="600" height="400" display="center" alt="fig_intro_overview" src="https://github.com/user-attachments/assets/a67a79e6-1033-4d24-9a30-5119747fe35e" />
